@@ -1,5 +1,4 @@
 name: "Run SAST Scan on SuperMario Game Project"
-
 on:
   push:
     branches:
