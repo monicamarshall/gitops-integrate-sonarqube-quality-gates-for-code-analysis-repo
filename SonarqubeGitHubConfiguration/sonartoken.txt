@@ -1,0 +1,8 @@
+
+
+
+SONAR_HOST_URL
+http://ec2-35-90-71-224.us-west-2.compute.amazonaws.com:9000
+
+SONAR_TOKEN
+  sqp_02bdc2064fe4009eefb53a32a1d94644974d9491
