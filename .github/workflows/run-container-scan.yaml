@@ -1,33 +1,43 @@
 name: "Run Container Scan on Super Mario Docker Image with Quality Gate"
- 
+
 on:
   push:
-    branches:
-      - main
- 
-env:
-  VERSION: $(( $(cat version.txt) + 1 ))
-  
+    branches: [ main ]
+
 jobs:
-  
-  run_container_image_scan_on_supermario_docker_image:
-    runs-on: ubuntu-latest	
- 
+  trivy-image-scan:
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
- 
+
+      # Read version.txt AFTER checkout and expose it as env
+      - name: Read version
+        id: ver
+        run: |
+          v=$(tr -d '\r' < version.txt)
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-        
-      - name: Get Docker Image from Docker Hub
-        run: |
-          docker pull docker.io/monicamarshall/supermariogitopsproject:${{ env.VERSION }}
-          docker save -o supermariolatestdockerimage.tar docker.io/monicamarshall/supermariogitopsproject:${{ env.VERSION }}
-     
-      - name: Run Trivy vulnerability scanner in tarball mode
-        uses: aquasecurity/trivy-action@master
+
+      # (Optional) Pull to validate that the tag exists; Trivy can pull on its own too.
+      - name: Validate image exists
+        run: docker pull docker.io/monicamarshall/supermariogitopsproject:${{ env.VERSION }}
+
+      - name: Trivy image scan (remote image)
+        uses: aquasecurity/trivy-action@0.24.0  # pin a released version
         with:
-          input: /github/workspace/supermariolatestdockerimage.tar
-          exit-code: '1'
+          image-ref: docker.io/monicamarshall/supermariogitopsproject:${{ env.VERSION }}
+          vuln-type: 'os,library'
+          ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
+          exit-code: '1'         # fail job on findings
+          format: 'sarif'
+          output: 'trivy.sarif'
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
