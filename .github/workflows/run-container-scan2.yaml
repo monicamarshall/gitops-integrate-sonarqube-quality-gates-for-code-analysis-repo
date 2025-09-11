@@ -1,4 +1,4 @@
-aname: Trivy Image Scan (with SARIF + Quality Gate)
+name: "Run Container Scan on Super Mario Docker Image with Quality Gate"
 
 on:
   push:
